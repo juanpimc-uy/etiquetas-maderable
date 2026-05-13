@@ -849,10 +849,20 @@ async function cargarPrefill(prefillStr) {
     const tokenData = await tokenRes.json();
     const token = tokenData.access_token;
     if (!token) throw new Error('Sin token');
-    const endpoint = encodeURIComponent('items?per_page=200');
-    const res = await fetch(`https://maderable-produccion.vercel.app/api/zoho-books?endpoint=${endpoint}&token=${token}`);
-    const data = await res.json();
-    zohoItems = (data.items || []).map((item, i) => ({
+    let allItems = [];
+    let page = 1;
+    const PER_PAGE = 200;
+    while (true) {
+      const endpoint = encodeURIComponent(`items?per_page=${PER_PAGE}&page=${page}`);
+      const res = await fetch(`https://maderable-produccion.vercel.app/api/zoho-books?endpoint=${endpoint}&token=${token}`);
+      const data = await res.json();
+      const items = data.items || [];
+      allItems = allItems.concat(items);
+      if (items.length < PER_PAGE) break;
+      page++;
+      if (page > 10) break; // máximo 2000 items
+    }
+    zohoItems = allItems.map((item, i) => ({
       id: 'z_' + (item.item_id || i),
       name: item.name || item.item_name || '',
       sku: item.sku || item.item_code || '',
